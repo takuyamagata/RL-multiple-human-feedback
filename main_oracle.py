@@ -6,24 +6,26 @@ from agent import agent
 from RLmon import RLmon
         
 # -----------------------------------------------------
-def main(algID   = 'tabQL_ps_Cest',     # Agent Algorithm
+def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm
          simInfo = '_tmp',              # Filename header
-         trial_count = 200,             # number of learning trial
+         trial_count = 100,             # number of learning trial
          episode_count = 2000,          # number of episodes to learn
          max_steps = 500,               # max. number of steps in a episode
          L  = np.array([1.0]),          # probability to give a feedback
          C  = np.array([0.2])           # Human feedback confidence level
          ):
 
-    print("start---")
+    print(f"start--{algID} {simInfo}")
     dispON = False
     
     # prepare RL monitor module
     legendStr = []
     for n in range(len(C)):
         legendStr.append('L={0},C={1}'.format(L[n], C[n]))
-    mon = RLmon(episode_count, 1)
-    monC = RLmon(episode_count, len(C))
+    mon = RLmon(trial_count, episode_count, 1)
+    monC = RLmon(trial_count, episode_count, len(C))
+    monAlpha = RLmon(trial_count, episode_count, len(C))
+    monBeta  = RLmon(trial_count, episode_count, len(C))
     
     env_h = environment.env()            
     for k in range(trial_count):
@@ -86,13 +88,20 @@ def main(algID   = 'tabQL_ps_Cest',     # Agent Algorithm
                     agent_h.act(action, ob, rw, done, fb, C)
                     break
             
+            if i % 100 == 0:
+                print(f"{k}, {i}: Ce: {agent_h.Ce} \t total reward: {totRW}")
+            
             # store result
             mon.store(i, k, totRW)
             monC.store(i, k, agent_h.Ce)
+            if hasattr(agent_h, 'sum_of_right_feedback'):
+                # store VI algorithm parameters
+                monAlpha.store(i, k, agent_h.sum_of_right_feedback + agent_h.a)
+                monBeta.store(i, k,  agent_h.sum_of_wrong_feedback + agent_h.b)
             
             # Reset environment
             env_h.reset()
-            agent_h.prev_obs = []
+            agent_h.prev_obs = None
             ob = env_h.st2ob()
             rw = 0
             totRW = 0
@@ -108,6 +117,12 @@ def main(algID   = 'tabQL_ps_Cest',     # Agent Algorithm
     mon.saveData(fname)
     fname = 'results/aveC_' + str(algID) + str(simInfo)
     monC.saveData(fname)
+    if hasattr(agent_h, 'sum_of_right_feedback'):
+        fname = 'results/aveAlpha_' + str(algID) + str(simInfo)
+        monAlpha.saveData(fname)
+        fname = 'results/aveBeta_' + str(algID) + str(simInfo)
+        monBeta.saveData(fname)
+        
     #fname = 'results/plot_' + str(algID) + str(simInfo)
     #mon.savePlot(fname)
     

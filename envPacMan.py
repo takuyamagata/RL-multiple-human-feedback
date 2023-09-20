@@ -240,9 +240,8 @@ class env:
         pPosIdx = (self.pacman.pos[0]-1) + (self.pacman.pos[1]-1)*self.map_size_x
         peltIdx = np.sum( self.pellets.valid * 2**np.arange( len(self.pellets.valid) ) )
     
-        return np.asscalar( gPosIdx + 
-                            gDirIdx*(self.map_size_x*self.map_size_y) + 
-                            pPosIdx*(self.map_size_x*self.map_size_y) * 4 + 
-                            peltIdx*(self.map_size_x*self.map_size_y) * 4 *(self.map_size_x*self.map_size_y) )
+        return gPosIdx + gDirIdx*(self.map_size_x*self.map_size_y) + \
+                         pPosIdx*(self.map_size_x*self.map_size_y) * 4 + \
+                         peltIdx*(self.map_size_x*self.map_size_y) * 4 *(self.map_size_x*self.map_size_y)
         
         
