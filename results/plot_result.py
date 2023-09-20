@@ -48,20 +48,19 @@ def plot_pct(ax, fname, pct=50, color='C0'):
 
 
 
-# files = glob.glob('./results/aveRW*npz')
-# for fname in files:
-#     fig, ax = plt.subplots(1)
-#     plot_std(ax, fname)
+files = glob.glob('./results/aveRW*npz')
+for fname in files:
+    fig, ax = plt.subplots(1)
+    plot_std(ax, fname)
 
-#     fig_fname, ext = os.path.splitext(fname)
-#     fig.savefig(fig_fname+'.pdf')
+    fig_fname, ext = os.path.splitext(fname)
+    fig.savefig(fig_fname+'.pdf')
     
 
-# fname = "results/aveC_tabQL_Cest_em_org_t2_C=p9_Tr1_L=p2.npz"
-fname = "results/aveRW_tabQL_Cest_em_org_t1_C=p2p9_Tr8_L=p2.npz"
-fig, ax = plt.subplots(1)
-plot_pct(ax, fname, 5)
-fig_fname, ext = os.path.splitext(fname)
-fig.savefig(fig_fname+'.pdf')
+# fname = "results/aveRW_tabQL_Cest_em_org_t1_C=p2p9_Tr8_L=p2.npz"
+# fig, ax = plt.subplots(1)
+# plot_pct(ax, fname, 5)
+# fig_fname, ext = os.path.splitext(fname)
+# fig.savefig(fig_fname+'.pdf')
 
 
