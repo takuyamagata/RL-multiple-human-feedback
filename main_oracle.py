@@ -43,7 +43,12 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         
         # Setup ORACLE
         oracle_h = agent('tabQLgreedy', env_h.nStates(), len(env_h.action_list()))
-        oracle_h.load('learnedStates/pacman_tabQL_oracle.pkl')   # load pre-learned Q function    
+        if env_size == 'small': # load pre-learned Q function 
+            oracle_h.load('learnedStates/pacman_tabQL_oracle.pkl')
+        elif env_size == 'medium':
+            oracle_h.load('learnedStates/pacman_medium_tabQL_oracle.pkl')
+        else:
+            raise ValueError(f"nvalid env_size value - must be 'small' or 'medium': {env_size}")
         oracle_h.alpha = 0                          # set learning rate to zero (no learning)
         
         action_list = env_h.action_list()

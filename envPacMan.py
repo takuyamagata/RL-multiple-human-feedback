@@ -163,6 +163,8 @@ class env:
             self.pacman = pacman(1,1, self.map)
             self.ghost  = ghost(9,6, self.map)
             self.pellets = pellets([[3,4],[7,3],[1,6],[9,1]])
+        else:
+            raise ValueError(f"invalid environment size is specified: {size}")
 
         self.map_size_x = len(self.map[0]) - 2
         self.map_size_y = len(self.map) - 2

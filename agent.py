@@ -564,6 +564,6 @@ class agent():
         with open(fname, 'rb') as fid:
             Q, d = pickle.load(fid)
             self.Q = Q
-            if d!=[]:
+            if d is not []:
                 self.d = d
         return
