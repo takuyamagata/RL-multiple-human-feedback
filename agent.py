@@ -14,12 +14,12 @@ import mylib
 
 class agent():
 
-    def __init__(self, algID, nStates, nActions, a=1.0, b=1.0):
-        self.reset(algID, nStates, nActions, a, b)
+    def __init__(self, algID, nStates, nActions, a=100.0, b=100.0, C_fixed=None):
+        self.reset(algID, nStates, nActions, a, b, C_fixed)
         return
         
         
-    def reset(self, algID, nStates, nActions, a, b):
+    def reset(self, algID, nStates, nActions, a, b, C_fixed):
         self.gamma    = 0.9 # discount factor
         self.alpha    = 0.05 #1.0/128.0 # learning rate
         self.eps      = 0.1 # e-greedy policy parametre (probability to select exploration action)
@@ -47,6 +47,8 @@ class agent():
         # Variational Inference parameters
         self.a = a # prior parameter for C
         self.b = b # prior parameter for C
+        # Fixed C (without C estimation)
+        self.C_fixed = C_fixed
         return
     
     
@@ -113,6 +115,7 @@ class agent():
         Tabular Q-learning with Policy shaping & consistency level (C) estimation
         The consistency level estimation is based on Variational Inference (VI) algorithm 
         """
+        assert self.C_fixed == None, "C_fixed must be None for tabQL_Cest_vi"
     
         # initialise Q
         if self.Q is None:
@@ -254,6 +257,7 @@ class agent():
         Tabular Q-learning with Policy shaping & consistency level (C) estimation
         The consistency level estimation is based on EM algorithm 
         """
+        assert self.C_fixed == None, "C_fixed must be None for tabQL_Cest_em"
     
         # initialise Q
         if self.Q is None:
@@ -275,7 +279,9 @@ class agent():
             # type1 (general case)
             for trainerIdx in np.arange(self.nTrainer):
                 for i in range(self.nActions):
-                    l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx])
+                    l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]) \
+                             - mylib.logadd(self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]), \
+                                            self.d[trainerIdx,curr_state_idx,i] * np.log(1.0-self.Ce[trainerIdx]))
         else:
             # type2 (only one optimal action)
             for trainerIdx in np.arange(self.nTrainer):
@@ -387,7 +393,10 @@ class agent():
                 self.nTrainer = len(fb)
                 self.hp = np.ones([self.nTrainer, self.nStates, self.nActions]) * 0.1
                 self.hm = np.ones([self.nTrainer, self.nStates, self.nActions]) * 0.1
-                self.Ce = np.ones(self.nTrainer) * 0.5
+                if self.C_fixed is None:
+                    self.Ce = np.ones(self.nTrainer) * 0.5
+                else:
+                    self.Ce = self.C_fixed
                 self.ave_nFBs = np.ones(self.nTrainer) * 1
                 self.ave_absQ = np.ones(self.nTrainer) * 1
 
@@ -414,7 +423,9 @@ class agent():
                 # type1 (general case)
                 for trainerIdx in np.arange(self.nTrainer):
                     for i in range(self.nActions):
-                        l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx])
+                        l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]) \
+                                 - mylib.logadd(self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]), \
+                                                self.d[trainerIdx,curr_state_idx,i] * np.log(1.0-self.Ce[trainerIdx]))
             else:
                 # type2 (only one optimal action)
                 for trainerIdx in np.arange(self.nTrainer):
@@ -450,8 +461,7 @@ class agent():
                     elif fb[trainerIdx] == False:
                         self.hm[trainerIdx, prev_state_idx, prev_action_idx] += 1
                     
-                    Cest_enable = True # hyper param to enable Cest
-                    if Cest_enable:
+                    if self.C_fixed is None:
                         ret = self.estimateC(self.hp[trainerIdx,:,:], \
                                             self.hm[trainerIdx,:,:], \
                                             self.Ce[trainerIdx],
@@ -464,7 +474,7 @@ class agent():
                         
                     else:
                         # fixed Cest case
-                        self.Ce[trainerIdx] = 0.8 # <- edit fixed number here
+                        self.Ce[trainerIdx] = self.C_fixed[trainerIdx] # <- edit fixed number here
 
             return action
 
@@ -512,8 +522,8 @@ class agent():
             # E-step
             if type == 1:
                 # type1 (general case)
-                l_p1 = np.log(p1q) + d[self.prev_obs,self.prev_act] * np.log(C)
-                l_p0 = np.log(p0q) + d[self.prev_obs,self.prev_act] * np.log(1.0-C)
+                l_p1 = np.log(p1q) + d[self.prev_obs,self.prev_act] * np.log(C)     - mylib.logadd(d[self.prev_obs,self.prev_act] * np.log(C), d[self.prev_obs,self.prev_act] * np.log(1.0-C))
+                l_p0 = np.log(p0q) + d[self.prev_obs,self.prev_act] * np.log(1.0-C) - mylib.logadd(d[self.prev_obs,self.prev_act] * np.log(C), d[self.prev_obs,self.prev_act] * np.log(1.0-C))
             else:
                 # type2 (only one optimal action)
                 l_p1 = np.log(p1q) + d[self.prev_obs,self.prev_act] * np.log(C) \

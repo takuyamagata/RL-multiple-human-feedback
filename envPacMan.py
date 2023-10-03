@@ -135,19 +135,34 @@ env - class (Toplevel)
 """
 class env:
 
-    def __init__(self):
+    def __init__(self, size='small'):
         self.map = list()
-        self.map.append('#######')
-        self.map.append('#     #')
-        self.map.append('# ### #')
-        self.map.append('# #   #')
-        self.map.append('# ### #')
-        self.map.append('#     #')
-        self.map.append('#######')
-                                
-        self.pacman = pacman(1,1, self.map)
-        self.ghost  = ghost(5,5, self.map)
-        self.pellets = pellets([[3,3], [1,5]])        
+        if size == 'small':
+            self.map.append('#######')
+            self.map.append('#     #')
+            self.map.append('# ### #')
+            self.map.append('# #   #')
+            self.map.append('# ### #')
+            self.map.append('#     #')
+            self.map.append('#######')
+                                    
+            self.pacman = pacman(1,1, self.map)
+            self.ghost  = ghost(5,5, self.map)
+            self.pellets = pellets([[3,3], [1,5]])
+            
+        elif size == 'medium':        
+            self.map.append('###########')
+            self.map.append('#         #')
+            self.map.append('# ### ### #')
+            self.map.append('# #   # # #')
+            self.map.append('# # #   # #')
+            self.map.append('# ### ### #')
+            self.map.append('#         #')
+            self.map.append('###########')
+                                    
+            self.pacman = pacman(1,1, self.map)
+            self.ghost  = ghost(9,6, self.map)
+            self.pellets = pellets([[3,4],[7,3],[1,6],[9,1]])
 
         self.map_size_x = len(self.map[0]) - 2
         self.map_size_y = len(self.map) - 2

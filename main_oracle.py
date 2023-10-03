@@ -6,13 +6,20 @@ from agent import agent
 from RLmon import RLmon
         
 # -----------------------------------------------------
-def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm
+def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2', 
+                                        #                   'tabQL_Cest_em_t1', 'tabQL_Cest_em_org_t2', 
+                                        #                   'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
          simInfo = '_tmp',              # Filename header
+         env_size = 'small',            # Pacman environment size 'small' or 'medium'
          trial_count = 100,             # number of learning trial
          episode_count = 2000,          # number of episodes to learn
          max_steps = 500,               # max. number of steps in a episode
          L  = np.array([1.0]),          # probability to give a feedback
-         C  = np.array([0.2])           # Human feedback confidence level
+         C  = np.array([0.2]),          # Human feedback confidence level
+         a  = 1.0,                      # alpha for C prior
+         b  = 1.0,                      # beta  for C prior
+         no_reward = False,             # agent learns the policy without reward (feedback only)
+         C_fixed = None,                # None: learn C, np.array(): fixed C (fixed C only works with "tabQL_Cest_em_org_t1" or "tabQL_Cest_em_org_t2")
          ):
 
     print(f"start--{algID} {simInfo}")
@@ -27,12 +34,12 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm
     monAlpha = RLmon(trial_count, episode_count, len(C))
     monBeta  = RLmon(trial_count, episode_count, len(C))
     
-    env_h = environment.env()            
+    env_h = environment.env(env_size)            
     for k in range(trial_count):
         print('trial: {0}'.format(k))
         
         env_h.reset()
-        agent_h  = agent(algID, env_h.nStates(), len(env_h.action_list()))
+        agent_h  = agent(algID, env_h.nStates(), len(env_h.action_list()), a=a, b=b, C_fixed=C_fixed)
         
         # Setup ORACLE
         oracle_h = agent('tabQLgreedy', env_h.nStates(), len(env_h.action_list()))
@@ -64,10 +71,18 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm
                 # call agent
                 action = agent_h.act(action, ob, rw, done, fb, 0.5)
                 # call oracle to get 'right' action
-                rightAction = oracle_h.act(action, ob, rw, done, fb, C)
+                if np.any(L > 0.0):
+                    rightAction = oracle_h.act(action, ob, rw, done, fb, C)
                     
                 # call environment
                 ob, rw, done = env_h.step(action_list[action])
+
+                # accumrate total reward
+                totRW += rw
+
+                # set reward zero when simulating without reward scase
+                if no_reward:
+                    rw = 0.0
                 
                 # 'human' feedback generation (by using ORACLE)
                 for trainerIdx in np.arange(len(fb)):
@@ -79,8 +94,6 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm
                     else:
                         fb[trainerIdx] = np.NaN # no feedback
                 
-                # accumrate total reward
-                totRW += rw
                 
                 # if done==True, call agent once more to learn 
                 # the final transition, then finish this episode.
@@ -106,6 +119,9 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm
             rw = 0
             totRW = 0
             done = False
+        
+        # save model
+        # agent_h.save('learnedStates/pacman_medium_tabQL_oracle')
                         
         # Clear agent class except the last trial
         if k < trial_count-1:
@@ -113,14 +129,14 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm
             del oracle_h
 
     # Save results
-    fname = 'results/aveRW_' + str(algID) + str(simInfo)
+    fname = 'results/aveRW_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
     mon.saveData(fname)
-    fname = 'results/aveC_' + str(algID) + str(simInfo)
+    fname = 'results/aveC_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
     monC.saveData(fname)
     if hasattr(agent_h, 'sum_of_right_feedback'):
-        fname = 'results/aveAlpha_' + str(algID) + str(simInfo)
+        fname = 'results/aveAlpha_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
         monAlpha.saveData(fname)
-        fname = 'results/aveBeta_' + str(algID) + str(simInfo)
+        fname = 'results/aveBeta_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
         monBeta.saveData(fname)
         
     #fname = 'results/plot_' + str(algID) + str(simInfo)
