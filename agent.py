@@ -86,6 +86,19 @@ class agent():
         self.prev_act = action
 
         return action
+    
+    
+    def _collect_feedback(self, feedback_list):
+        # collect feedback and update self.hp and self.hm. 
+        for n, fb in enumerate(feedback_list):
+            # if fb.good_actions.shape[1] > 0:
+            for m in range(fb.good_actions.shape[0]): # support multiple set of good/bad actions with different confidence level
+                for a in fb.good_actions[m]:
+                    self.hp[n, fb.state, a] = self.hp[n, fb.state, a] + fb.conf_good_actions[m]
+            # if fb.bad_actions.shape[1] > 0:
+            for m in range(fb.bad_actions.shape[0]):
+                for a in fb.bad_actions[m]:
+                    self.hm[n, fb.state, a] = self.hm[n, fb.state, a] + fb.conf_bad_actions[m]                
 
     # Tabular one step Temporal Difference
     def tabQLgreedy(self, obs, rw):
@@ -180,11 +193,7 @@ class agent():
             self.Q[prev_state_idx, prev_action_idx] += self.alpha * td_err
         
             # Human feedback updates
-            for trainerIdx in np.arange(self.nTrainer):
-                if fb[trainerIdx] == True:
-                    self.hp[trainerIdx, prev_state_idx, prev_action_idx] += 1
-                elif fb[trainerIdx] == False:
-                    self.hm[trainerIdx, prev_state_idx, prev_action_idx] += 1
+            self._collect_feedback(fb)
         
         # Update C estimations    
         if update_Cest:
@@ -310,11 +319,7 @@ class agent():
             self.Q[prev_state_idx, prev_action_idx] += self.alpha * td_err
         
             # Human feedback updates
-            for trainerIdx in np.arange(self.nTrainer):
-                if fb[trainerIdx] == True:
-                    self.hp[trainerIdx, prev_state_idx, prev_action_idx] += 1
-                elif fb[trainerIdx] == False:
-                    self.hm[trainerIdx, prev_state_idx, prev_action_idx] += 1
+            self._collect_feedback(fb)
         
         # Update C estimations    
         if update_Cest:
@@ -454,13 +459,9 @@ class agent():
                 self.Q[prev_state_idx, prev_action_idx] += self.alpha * td_err
             
                 # Human feedback updates
+                self._collect_feedback(fb)
+                
                 for trainerIdx in np.arange(self.nTrainer):
-
-                    if fb[trainerIdx] == True:
-                        self.hp[trainerIdx, prev_state_idx, prev_action_idx] += 1
-                    elif fb[trainerIdx] == False:
-                        self.hm[trainerIdx, prev_state_idx, prev_action_idx] += 1
-                    
                     if self.C_fixed is None:
                         ret = self.estimateC(self.hp[trainerIdx,:,:], \
                                             self.hm[trainerIdx,:,:], \
