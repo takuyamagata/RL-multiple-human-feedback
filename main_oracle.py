@@ -113,7 +113,9 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
                                     bad_actions=bad_actions,   conf_bad_actions=conf_bad_actions)         
                 
     return ret
-# -----------------------------------------------------
+
+# ==================================================================================================
+
 def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_em_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
@@ -129,6 +131,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
          b  = 1.0,                      # beta  for C prior
          no_reward = False,             # agent learns the policy without reward (feedback only)
          C_fixed = None,                # None: learn C, np.array(): fixed C (fixed C only works with "tabQL_Cest_em_org_t1" or "tabQL_Cest_em_org_t2")
+         update_Cest_interval = 4,      # Cest update interval (number of espisodes)
          ):
 
     print(f"start--{algID} {simInfo}")
@@ -148,7 +151,10 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         print('trial: {0}'.format(k))
         
         env_h.reset()
-        agent_h  = agent(algID, env_h.nStates(), len(env_h.action_list()), a=a, b=b, C_fixed=C_fixed)
+        agent_h  = agent(algID, env_h.nStates(), len(env_h.action_list()), 
+                         a=a, b=b, 
+                         C_fixed=C_fixed, 
+                        )
         
         # Setup ORACLE
         oracle_h = agent('tabQLgreedy', env_h.nStates(), len(env_h.action_list()))
@@ -167,6 +173,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         totRW = 0                     # total reward in this episode
         done = False                  # episode completion flag
         fb = [feedback() for n in range(len(C))] # Human feedback
+        update_Cest = False
         
         for i in range(episode_count):
             
@@ -183,7 +190,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                         dispON = False
         
                 # call agent
-                action = agent_h.act(action, ob, rw, done, fb, 0.5)
+                action = agent_h.act(action, ob, rw, done, fb, 0.5, update_Cest=False)
                 # call oracle to get 'right' action
                 if np.any(L > 0.0):
                     rightAction = oracle_h.act(action, ob, rw, done, fb, C)
@@ -210,7 +217,8 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                 # if done==True, call agent once more to learn 
                 # the final transition, then finish this episode.
                 if done:
-                    agent_h.act(action, ob, rw, done, fb, C)
+                    update_Cest = ((i+1) % update_Cest_interval == 0)
+                    agent_h.act(action, ob, rw, done, fb, C, update_Cest=update_Cest)
                     break
             
             if i % 100 == 0:
@@ -223,7 +231,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                 # store VI algorithm parameters
                 monAlpha.store(i, k, agent_h.sum_of_right_feedback + agent_h.a)
                 monBeta.store(i, k,  agent_h.sum_of_wrong_feedback + agent_h.b)
-            
+                
             # Reset environment
             env_h.reset()
             agent_h.prev_obs = None

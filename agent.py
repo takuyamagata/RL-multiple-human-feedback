@@ -52,9 +52,12 @@ class agent():
         return
     
     
-    def act(self, a, obs, rw, done, fb, C):
+    def act(self, a, obs, rw, done, fb, C, update_Cest=None):
 
         action = 0 # default action.
+        
+        if update_Cest is None:
+            update_Cest = done
 
         # state-action wise Expectation Maximisation based C estimation agent
         if self.algID == 'tabQL_Cest_em_org_t1':
@@ -64,15 +67,15 @@ class agent():
             
         # Expectation Maximisation based C estimation agent
         elif self.algID == 'tabQL_Cest_em_t1':
-            action = self.tabQL_Cest_em(obs, rw, done, fb, type=1, update_Cest=done)
+            action = self.tabQL_Cest_em(obs, rw, done, fb, type=1, update_Cest=update_Cest)
         elif self.algID == 'tabQL_Cest_em_t2':
-            action = self.tabQL_Cest_em(obs, rw, done, fb, type=2, update_Cest=done)
+            action = self.tabQL_Cest_em(obs, rw, done, fb, type=2, update_Cest=update_Cest)
         
         # Variational Inference based C estimation agent            
         elif self.algID == 'tabQL_Cest_vi_t1':
-            action = self.tabQL_Cest_vi(obs, rw, done, fb, type=1, update_Cest=done)
+            action = self.tabQL_Cest_vi(obs, rw, done, fb, type=1, update_Cest=update_Cest)
         elif self.algID == 'tabQL_Cest_vi_t2':
-            action = self.tabQL_Cest_vi(obs, rw, done, fb, type=2, update_Cest=done)
+            action = self.tabQL_Cest_vi(obs, rw, done, fb, type=2, update_Cest=update_Cest)
         
         # Q-learning (no feedback)
         elif self.algID == 'tabQLgreedy':
@@ -98,8 +101,8 @@ class agent():
             # if fb.bad_actions.shape[1] > 0:
             for m in range(fb.bad_actions.shape[0]):
                 for a in fb.bad_actions[m]:
-                    self.hm[n, fb.state, a] = self.hm[n, fb.state, a] + fb.conf_bad_actions[m]                
-
+                    self.hm[n, fb.state, a] = self.hm[n, fb.state, a] + fb.conf_bad_actions[m]
+                            
     # Tabular one step Temporal Difference
     def tabQLgreedy(self, obs, rw):
        
@@ -141,7 +144,7 @@ class agent():
             self.sum_of_right_feedback = np.zeros(self.nTrainer) # sum of the expected number of right feedbacks (\sum h^r)
             self.sum_of_wrong_feedback = np.zeros(self.nTrainer) # sum of the expected number of wrong feedbacks (\sum h^w)
             self.psi_for_hr = psi(self.sum_of_right_feedback + self.a) - psi(self.sum_of_right_feedback + self.sum_of_wrong_feedback + self.a + self.b) # psi( \sum h^r + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
-            self.psi_for_hw = psi(self.sum_of_wrong_feedback + self.a) - psi(self.sum_of_right_feedback + self.sum_of_wrong_feedback + self.a + self.b) # psi( \sum h^w + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
+            self.psi_for_hw = psi(self.sum_of_wrong_feedback + self.b) - psi(self.sum_of_right_feedback + self.sum_of_wrong_feedback + self.a + self.b) # psi( \sum h^w + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
             
             # set prior parameters for C
             if hasattr(self.a, "__len__"):
@@ -251,7 +254,7 @@ class agent():
                         self.sum_of_right_feedback[m] = np.sum(P1*self.hp[m,:,:] + P0*self.hm[m,:,:])
                         self.sum_of_wrong_feedback[m] = np.sum(P0*self.hp[m,:,:] + P1*self.hm[m,:,:])
                         self.psi_for_hr[m] = psi(self.sum_of_right_feedback[m] + self.a[m]) - psi(self.sum_of_right_feedback[m] + self.sum_of_wrong_feedback[m] + self.a[m] + self.b[m]) # psi( \sum h^r + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
-                        self.psi_for_hw[m] = psi(self.sum_of_wrong_feedback[m] + self.a[m]) - psi(self.sum_of_right_feedback[m] + self.sum_of_wrong_feedback[m] + self.a[m] + self.b[m]) # psi( \sum h^w + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
+                        self.psi_for_hw[m] = psi(self.sum_of_wrong_feedback[m] + self.b[m]) - psi(self.sum_of_right_feedback[m] + self.sum_of_wrong_feedback[m] + self.a[m] + self.b[m]) # psi( \sum h^w + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
                         Ce[m] = self.sum_of_right_feedback[m] / (self.sum_of_right_feedback[m] + self.sum_of_wrong_feedback[m]) # debug purpose only - not used in this agent
                 
                 if np.max(np.abs(Ce - Ce_old)) < 1e-3:
@@ -295,7 +298,7 @@ class agent():
             # type2 (only one optimal action)
             for trainerIdx in np.arange(self.nTrainer):
                 for i in range(self.nActions):
-                    l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]) + sum(self.d[trainerIdx,curr_state_idx,np.arange(self.nActions)!=i]) * np.log(1-self.Ce[trainerIdx])
+                    l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]) - self.d[trainerIdx,curr_state_idx,i] * np.log(1-self.Ce[trainerIdx])
 
         l_pr = l_pr - mylib.logsum(l_pr)
         pr = np.exp(l_pr)
@@ -361,17 +364,18 @@ class agent():
                 else:
                     # type2 (only one optimal action)
                     for (s,a) in valid_sa_pairs:
-                        ln_P1[s,a] = ln_P_Q1[s,a] + np.sum(d[:,s,a] * np.log(Ce)) + np.sum(np.sum(d[:,s,np.arange(self.nActions)!=a], axis=1) * np.log(1.0-Ce))
+                        ln_P1[s,a] = ln_P_Q1[s,a] + np.sum(d[:,s,a] * np.log(Ce)) - np.sum(d[:,s,a] * np.log(1.0-Ce))
                         ln_P0_ = -np.inf
                         for a_ in range(self.nActions):
                             if a_ != a:
                                 ln_P0_ = mylib.logadd(ln_P0_, 
-                                                    ln_P_Q1[s,a_] +
-                                                    np.sum(d[:,s,a_] * np.log(Ce)) + 
-                                                    np.sum(np.sum(d[:,s,np.arange(self.nActions)!=a_], axis=1) * np.log(1.0-Ce)))
+                                                    ln_P_Q1[s,a_]
+                                                  + np.sum(d[:,s,a_] * np.log(Ce)) 
+                                                  - np.sum(d[:,s,a_] * np.log(1.0-Ce)))
                         ln_P0[s,a] = ln_P0_
-                        ln_P0[s,a] = ln_P0[s,a] - mylib.logadd(ln_P0[s,a], ln_P1[s,a])
-                        ln_P1[s,a] = ln_P1[s,a] - mylib.logadd(ln_P0[s,a], ln_P1[s,a])
+                        ln_partition = mylib.logadd(ln_P0[s,a], ln_P1[s,a])
+                        ln_P0[s,a] = ln_P0[s,a] - ln_partition
+                        ln_P1[s,a] = ln_P1[s,a] - ln_partition
                 
                 # M-step (compute C)
                 Ce_old = Ce.copy()
