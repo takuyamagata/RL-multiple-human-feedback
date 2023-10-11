@@ -231,8 +231,9 @@ class agent():
                     for (s,a) in valid_sa_pairs:
                         ln_P1[s,a] = np.sum(self.hp[:,s,a] * self.psi_for_hr + self.hm[:,s,a] * self.psi_for_hw) + ln_P_Q1[s,a]
                         ln_P0[s,a] = np.sum(self.hm[:,s,a] * self.psi_for_hr + self.hp[:,s,a] * self.psi_for_hw) + ln_P_Q0[s,a]
-                        ln_P0[s,a] = ln_P0[s,a] - mylib.logadd(ln_P0[s,a], ln_P1[s,a])
-                        ln_P1[s,a] = ln_P1[s,a] - mylib.logadd(ln_P0[s,a], ln_P1[s,a])
+                        ln_partition = mylib.logadd(ln_P0[s,a], ln_P1[s,a])
+                        ln_P0[s,a] = ln_P0[s,a] - ln_partition
+                        ln_P1[s,a] = ln_P1[s,a] - ln_partition
                 else:
                     # type2 (only one optimal action)
                     for (s,a) in valid_sa_pairs:
@@ -359,12 +360,14 @@ class agent():
                     for (s,a) in valid_sa_pairs:
                         ln_P1[s,a] = ln_P_Q1[s,a] + np.sum(d[:,s,a] * np.log(Ce))
                         ln_P0[s,a] = ln_P_Q0[s,a] + np.sum(d[:,s,a] * np.log(1.0-Ce))
-                        ln_P0[s,a] = ln_P0[s,a] - mylib.logadd(ln_P0[s,a], ln_P1[s,a])
-                        ln_P1[s,a] = ln_P1[s,a] - mylib.logadd(ln_P0[s,a], ln_P1[s,a])
+                        ln_partition = mylib.logadd(ln_P0[s,a], ln_P1[s,a])
+                        ln_P0[s,a] = ln_P0[s,a] - ln_partition
+                        ln_P1[s,a] = ln_P1[s,a] - ln_partition
                 else:
                     # type2 (only one optimal action)
                     for (s,a) in valid_sa_pairs:
-                        ln_P1[s,a] = ln_P_Q1[s,a] + np.sum(d[:,s,a] * np.log(Ce)) - np.sum(d[:,s,a] * np.log(1.0-Ce))
+                        ln_P1[s,a] = ln_P_Q1[s,a] + np.sum(d[:,s,a] * np.log(Ce)) \
+                                                  - np.sum(d[:,s,a] * np.log(1.0-Ce))
                         ln_P0_ = -np.inf
                         for a_ in range(self.nActions):
                             if a_ != a:
