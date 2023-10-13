@@ -442,7 +442,7 @@ class agent():
                 # type2 (only one optimal action)
                 for trainerIdx in np.arange(self.nTrainer):
                     for i in range(self.nActions):
-                        l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]) + sum(self.d[trainerIdx,curr_state_idx,np.arange(self.nActions)!=i]) * np.log(1-self.Ce[trainerIdx])
+                        l_pr[i] += self.d[trainerIdx,curr_state_idx,i] * np.log(self.Ce[trainerIdx]) - self.d[trainerIdx,curr_state_idx,i] * np.log(1-self.Ce[trainerIdx])
 
 
             l_pr = l_pr - mylib.logsum(l_pr)

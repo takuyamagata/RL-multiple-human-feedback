@@ -131,7 +131,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
          b  = 1.0,                      # beta  for C prior
          no_reward = False,             # agent learns the policy without reward (feedback only)
          C_fixed = None,                # None: learn C, np.array(): fixed C (fixed C only works with "tabQL_Cest_em_org_t1" or "tabQL_Cest_em_org_t2")
-         update_Cest_interval = 4,      # Cest update interval (number of espisodes)
+         update_Cest_interval = 5,      # Cest update interval (number of espisodes)
          ):
 
     print(f"start--{algID} {simInfo}")
@@ -216,7 +216,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                 
                 # if done==True, call agent once more to learn 
                 # the final transition, then finish this episode.
-                if done:
+                if done or j == max_steps - 1:
                     update_Cest = ((i+1) % update_Cest_interval == 0)
                     agent_h.act(action, ob, rw, done, fb, C, update_Cest=update_Cest)
                     break
