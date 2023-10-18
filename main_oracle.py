@@ -110,8 +110,23 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
         conf_good_actions = confidence if len(good_actions) > 0 else []
         conf_bad_actions = confidence if len(bad_actions) > 0 else []
         ret = feedback(state=state, good_actions=good_actions, conf_good_actions=conf_good_actions,
-                                    bad_actions=bad_actions,   conf_bad_actions=conf_bad_actions)         
-                
+                                    bad_actions=bad_actions,   conf_bad_actions=conf_bad_actions)
+    
+    # no information binary-feedbacks
+    elif type == 'binary-random':
+        # randomly pick right or wrong (original Adivce algorithm)
+        if np.random.rand() < 1.0/nActions:
+            ret = feedback(state=state, good_actions=[action], conf_good_actions=1.0)
+        else:
+            ret = feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
+    elif type == 'binary-positive':
+        # always positive (say right) (original Adivce algorithm)
+        ret = feedback(state=state, good_actions=[action], conf_good_actions=1.0)
+        
+    elif type == 'binary-negative':         
+        # always negative (say wrong) (original Adivce algorithm)
+        ret = feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
+
     return ret
 
 # ==================================================================================================
