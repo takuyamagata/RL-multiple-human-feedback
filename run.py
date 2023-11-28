@@ -13,7 +13,7 @@ main_oracle.main(
                                         # 'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
          simInfo='_C=p2p9_Tr15_L=p01_a=100_b=100', # Filename header
          env_size = 'small',         # environment size ('small' or 'medium')
-         trial_count = 100,          # number of learning trial
+         trial_count = 5,          # number of learning trial
          episode_count = 2000,       # number of episodes for a single learning trial
          L  = np.ones(15) * 1e-2,    # probability to give a feedback
          C  = np.array([0.9,  0.9,  0.8,  0.8,  0.7,  0.7,  0.6,  0.6,  0.5,  0.4,  0.4,  0.3,  0.3,  0.2,  0.2]),      # Human feedback confidence level)
