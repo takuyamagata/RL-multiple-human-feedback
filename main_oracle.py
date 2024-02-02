@@ -35,6 +35,40 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
     #   right_actions = list of actions for the optimal actions
     #   action = action for giving a feedback
     
+    if type=='multiple-feedback':
+        # right or wrong (original Adivce algorithm)
+        bad_actions = [ac for ac in range(nActions) if ac not in right_actions]
+        good_conf = [C]*len(right_actions)
+        bad_conf  = [C]*len(bad_actions)
+
+        if np.random.rand() < C:
+            # right feedback
+            if action in right_actions:
+                ret = feedback(state=state, good_actions=right_actions, bad_actions=bad_actions, conf_good_actions=good_conf, conf_bad_actions=bad_conf)
+            else:
+                ret = feedback(state=state, bad_actions=right_actions, good_actions=bad_actions, conf_good_actions=bad_conf, conf_bad_actions=good_conf)
+        else:
+            # wrong feedback
+            if action in right_actions:
+                ret = feedback(state=state, bad_actions=right_actions, good_actions=bad_actions, conf_good_actions=bad_conf, conf_bad_actions=good_conf)
+            else:
+                ret = feedback(state=state, good_actions=right_actions, bad_actions=bad_actions, conf_good_actions=good_conf, conf_bad_actions=bad_conf)
+    
+    if type=='binary-feedback_w_consistency':
+        # right or wrong (original Adivce algorithm)
+        if np.random.rand() < C:
+            # right feedback
+            if action in right_actions:
+                ret = feedback(state=state, good_actions=[action], conf_good_actions=C)
+            else:
+                ret = feedback(state=state, bad_actions=[action], conf_bad_actions=C)
+        else:
+            # wrong feedback
+            if action in right_actions:
+                ret = feedback(state=state, bad_actions=[action], conf_bad_actions=C)
+            else:
+                ret = feedback(state=state, good_actions=[action], conf_good_actions=C)
+
     if type=='binary-feedback':
         # right or wrong (original Adivce algorithm)
         if np.random.rand() < C:
@@ -134,7 +168,7 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
 def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_em_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
-         feedback_type = 'binary-feedback', # feedback type 'binary-feedback', 'soft-feedback', 'crisp-set', 'soft-set'
+         feedback_type = 'binary-feedback', # feedback type 'binary-feedback', 'soft-feedback', 'crisp-set', 'soft-set', 'binary-feedback_w_consistency', 'multiple-feedback'
          simInfo = '_tmp',              # Filename header
          env_size = 'small',            # Pacman environment size 'small' or 'medium'
          trial_count = 100,             # number of learning trial
@@ -147,6 +181,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
          no_reward = False,             # agent learns the policy without reward (feedback only)
          C_fixed = None,                # None: learn C, np.array(): fixed C (fixed C only works with "tabQL_Cest_em_org_t1" or "tabQL_Cest_em_org_t2")
          update_Cest_interval = 5,      # Cest update interval (number of espisodes)
+         window=None
          ):
 
     print(f"start--{algID} {simInfo}")
@@ -206,11 +241,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         
                 # call agent
                 action = agent_h.act(action, ob, rw, done, fb, 0.5, update_Cest=False)
-                # call oracle to get 'right' action
-                if np.any(L > 0.0):
-                    rightAction = oracle_h.act(action, ob, rw, done, fb, C)
-                    ob_for_feedback = ob
-                    
+
                 # call environment
                 ob, rw, done = env_h.step(action_list[action])
 
@@ -221,13 +252,20 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                 if no_reward:
                     rw = 0.0
                 
-                # 'human' feedback generation (by using ORACLE)
-                for trainerIdx in np.arange(len(fb)):
-                    if np.random.rand() < L[trainerIdx]:
-                        fb[trainerIdx] = generate_feedback(ob_for_feedback, len(env_h.action_list()), C[trainerIdx], [rightAction], type=feedback_type, action=action) # Right feedback
-                    else:
-                        fb[trainerIdx] = feedback() # no feedback
                 
+                if i in range(window[0],window[1]):
+                # call oracle to get 'right' action
+                    if np.any(L > 0.0):
+                        rightAction = oracle_h.act(action, ob, rw, done, fb, C)
+                        ob_for_feedback = ob
+                        # 'human' feedback generation (by using ORACLE)
+                    for trainerIdx in np.arange(len(fb)):
+                        if np.random.rand() < L[trainerIdx]:
+                            fb[trainerIdx] = generate_feedback(ob_for_feedback, len(env_h.action_list()), C[trainerIdx], [rightAction], type=feedback_type, action=action) # Right feedback
+                        else:
+                            fb[trainerIdx] = feedback() # no feedback
+                # else:
+                #             fb[trainerIdx] = feedback() # no feedback
                 
                 # if done==True, call agent once more to learn 
                 # the final transition, then finish this episode.
