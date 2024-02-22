@@ -1,5 +1,4 @@
-# RL-multiple-human-feedback
+# PbRL-multiple-human-feedback
 
-Source code for "RL with feedback from multiple humans with diverse skills"
+This repository is for Preference-based Reinforcement Learning (PbRL) with multiple human feedback (learning from a crowd).
 
-A link to our paper can be found on [arXiv](https://arxiv.org/abs/2111.08596).
