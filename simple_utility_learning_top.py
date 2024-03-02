@@ -47,10 +47,13 @@ def plot_std(ax, data, color=None, label=None, ma_len=1):
 def top(
     util = np.log([1.0, 1.1, 1.2, 0.8]),
     beta = np.array([1.0, 1.5, 0.3]),
+    beta_fixed = False,
     lr = 2e-3,
     sgd_all = False,
     max_time_steps = 10000,
+    num_feedback_at_start = 0,       # number of preferences at the start
     num_feedback_per_timestep = 100, # number of preferences per iteration per trainer
+    sgd_sample_size = 1000,          # batch size for SGD
     num_iterations_per_timestep = 1,
     num_SGD_steps_per_iteration = 1,
     dir = 'results',
@@ -64,7 +67,7 @@ def top(
     lr_str = f"{lr:1.0e}"
     u_str = str(np.exp(util)).replace(' ', '_')
     b_str = str(beta).replace(' ', '_')
-    fname = f'{alg}_u{u_str}_b{b_str}_lr{lr_str}_nFb{num_feedback_per_timestep}_nIt{num_iterations_per_timestep}_nSGDs{num_SGD_steps_per_iteration}'    
+    fname = f'{alg}_u{u_str}_b{b_str}_bFxd{beta_fixed}_lr{lr_str}_nFb{num_feedback_per_timestep}_nIt{num_iterations_per_timestep}_nSGDs{num_SGD_steps_per_iteration}'    
     if fname_tailer is not None:
         fname = fname + fname_tailer
     
@@ -74,16 +77,19 @@ def top(
     b_list = []
     for n in range(num_trials):
         print(f'trials {n+1}/{num_trials}')
-        u_, b_, _, _ = main(
-                            util = util,
-                            beta = beta,
-                            lr = lr,
-                            sgd_all = sgd_all,
-                            max_time_steps = max_time_steps,
-                            num_feedback_per_timestep = num_feedback_per_timestep,
-                            num_iterations_per_timestep = num_iterations_per_timestep,
-                            num_SGD_steps_per_iteration= num_SGD_steps_per_iteration,
-                            )
+        u_, b_, = main(
+                    util = util,
+                    beta = beta,
+                    beta_fixed = beta_fixed,
+                    lr = lr,
+                    sgd_all = sgd_all,
+                    max_time_steps = max_time_steps,
+                    num_iterations_per_timestep = num_iterations_per_timestep,
+                    num_SGD_steps_per_iteration= num_SGD_steps_per_iteration,
+                    num_feedback_per_timestep = num_feedback_per_timestep,
+                    num_feedback_at_start = num_feedback_at_start,
+                    sgd_sample_size = sgd_sample_size,
+                    )
         u_list.append(u_)
         b_list.append(b_)
         
@@ -91,6 +97,7 @@ def top(
     data = {
         'util': util,
         'beta': beta,
+        'beta_fixed': beta_fixed,
         'u_list': u_list,
         'b_list': b_list,
         'lr': lr,
