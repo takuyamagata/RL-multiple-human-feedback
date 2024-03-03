@@ -65,9 +65,10 @@ def top(
     # generate file name
     alg = 'SGD' if sgd_all else 'SGD+MM'
     lr_str = f"{lr:1.0e}"
-    u_str = str(np.exp(util)).replace(' ', '_')
+    u_str = str(util).replace(' ', '_')
     b_str = str(beta).replace(' ', '_')
-    fname = f'{alg}_u{u_str}_b{b_str}_bFxd{beta_fixed}_lr{lr_str}_nFb{num_feedback_per_timestep}_nIt{num_iterations_per_timestep}_nSGDs{num_SGD_steps_per_iteration}'    
+    ufxd_str = str(beta_fixed).replace(' ', '_')
+    fname = f'{alg}_u{u_str}_b{b_str}_bFxd{ufxd_str}_lr{lr_str}_nFb{num_feedback_per_timestep}_nIt{num_iterations_per_timestep}_nSGDs{num_SGD_steps_per_iteration}'    
     if fname_tailer is not None:
         fname = fname + fname_tailer
     
