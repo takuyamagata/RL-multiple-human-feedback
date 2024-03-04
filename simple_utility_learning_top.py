@@ -68,7 +68,7 @@ def top(
     u_str = str(util).replace(' ', '_')
     b_str = str(beta).replace(' ', '_')
     ufxd_str = str(beta_fixed).replace(' ', '_')
-    fname = f'{alg}_u{u_str}_b{b_str}_bFxd{ufxd_str}_lr{lr_str}_nFb{num_feedback_per_timestep}_nIt{num_feedback_at_start}-{num_iterations_per_timestep}_nSGDs{num_SGD_steps_per_iteration}'    
+    fname = f'{alg}_u{u_str}_b{b_str}_bFxd{ufxd_str}_lr{lr_str}_nFb{num_feedback_at_start}-{num_feedback_per_timestep}_nIt{num_iterations_per_timestep}_nSGDs{num_SGD_steps_per_iteration}'    
     if fname_tailer is not None:
         fname = fname + fname_tailer
     
