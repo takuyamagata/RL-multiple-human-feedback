@@ -1,11 +1,13 @@
 import numpy as np
+import pandas as pd # used for stroing the results
 
 import envPacMan as environment 
 from agent import agent
 
 from RLmon import RLmon
 
-class feedback():
+
+class Feedback():
     def __init__(self, state=[], good_actions=[], conf_good_actions=[], bad_actions=[], conf_bad_actions=[]):
         good_actions = np.array(good_actions)
         bad_actions = np.array(bad_actions)
@@ -40,15 +42,15 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
         if np.random.rand() < C:
             # right feedback
             if action in right_actions:
-                ret = feedback(state=state, good_actions=[action], conf_good_actions=1.0)
+                ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
             else:
-                ret = feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
+                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
         else:
             # wrong feedback
             if action in right_actions:
-                ret = feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
+                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
             else:
-                ret = feedback(state=state, good_actions=[action], conf_good_actions=1.0)
+                ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
     elif type=='soft-feedback':
         # right or wrong with the confidence level [0,1]
         sampled_C = np.random.beta(a=C*10, b=(10-C*10)) # sample C from beta distribution to keep the expectation to be the given C
@@ -56,15 +58,15 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
         if np.random.rand() < sampled_C:
             # right feedback
             if action in right_actions:
-                ret = feedback(state=state, good_actions=[action], conf_good_actions=confidence)
+                ret = Feedback(state=state, good_actions=[action], conf_good_actions=confidence)
             else:
-                ret = feedback(state=state, bad_actions=[action], conf_bad_actions=confidence)
+                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=confidence)
         else:
             # wrong feedback
             if action in right_actions:
-                ret = feedback(state=state, bad_actions=[action], conf_bad_actions=confidence)
+                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=confidence)
             else:
-                ret = feedback(state=state, good_actions=[action], conf_good_actions=confidence)
+                ret = Feedback(state=state, good_actions=[action], conf_good_actions=confidence)
     elif type=='crisp-set':
         # set of good and/or bad actions      
         num_feedback_actions = 2
@@ -85,7 +87,7 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
                     good_actions.append(a)
         conf_good_actions = 1.0 if len(good_actions) > 0 else []
         conf_bad_actions = 1.0 if len(bad_actions) > 0 else []
-        ret = feedback(state=state, good_actions=good_actions, conf_good_actions=conf_good_actions,
+        ret = Feedback(state=state, good_actions=good_actions, conf_good_actions=conf_good_actions,
                                     bad_actions=bad_actions,   conf_bad_actions=conf_bad_actions)
     elif type=='soft-set':
         # set of good and/or bad actions      
@@ -109,25 +111,49 @@ def generate_feedback(state, nActions, C, right_actions, type='binary-feedback',
                     good_actions.append(a)
         conf_good_actions = confidence if len(good_actions) > 0 else []
         conf_bad_actions = confidence if len(bad_actions) > 0 else []
-        ret = feedback(state=state, good_actions=good_actions, conf_good_actions=conf_good_actions,
+        ret = Feedback(state=state, good_actions=good_actions, conf_good_actions=conf_good_actions,
                                     bad_actions=bad_actions,   conf_bad_actions=conf_bad_actions)
     
     # no information binary-feedbacks
     elif type == 'binary-random':
         # randomly pick right or wrong (original Adivce algorithm)
         if np.random.rand() < 1.0/nActions:
-            ret = feedback(state=state, good_actions=[action], conf_good_actions=1.0)
+            ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
         else:
-            ret = feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
+            ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
     elif type == 'binary-positive':
         # always positive (say right) (original Adivce algorithm)
-        ret = feedback(state=state, good_actions=[action], conf_good_actions=1.0)
+        ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
         
     elif type == 'binary-negative':         
         # always negative (say wrong) (original Adivce algorithm)
-        ret = feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
+        ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
 
     return ret
+
+
+class Trajectory():
+    def __init__(self, state=[], action=[], optimal_action=[], reward=[], done=[]):
+        assert len(state) == len(action) == len(optimal_action) == len(reward) == len(done), \
+            f"Length of state, action, optimal_action, reward, done must be the same: {len(state)}, {len(action)}, {len(optimal_action)}, {len(reward)}, {len(done)}"
+        self.state = state
+        self.action = action
+        self.optimal_action = optimal_action
+        self.reward = reward
+        self.done = done
+
+    def append(self, state=None, action=None, optimal_action=None, reward=None, done=None):
+        self.state.append(state)
+        self.action.append(action)
+        self.optimal_action.append(optimal_action)
+        self.reward.append(reward)
+        self.done.append(done)
+        
+    def __str__(self):
+        return f"state: {self.state}, action: {self.action}, reward: {self.reward}, done: {self.done}"
+    
+    def __len__(self):
+        return len(self.state)
 
 # ==================================================================================================
 
@@ -147,6 +173,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
          no_reward = False,             # agent learns the policy without reward (feedback only)
          C_fixed = None,                # None: learn C, np.array(): fixed C (fixed C only works with "tabQL_Cest_em_org_t1" or "tabQL_Cest_em_org_t2")
          update_Cest_interval = 5,      # Cest update interval (number of espisodes)
+         active_feedback_type = None,   # active feedback type (None: no active feedback, 'count') 
          ):
 
     print(f"start--{algID} {simInfo}")
@@ -156,10 +183,8 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
     legendStr = []
     for n in range(len(C)):
         legendStr.append('L={0},C={1}'.format(L[n], C[n]))
-    mon = RLmon(trial_count, episode_count, 1)
-    monC = RLmon(trial_count, episode_count, len(C))
-    monAlpha = RLmon(trial_count, episode_count, len(C))
-    monBeta  = RLmon(trial_count, episode_count, len(C))
+    
+    monitor = RLmon(['return', 'Cest', 'alpha', 'beta'])
     
     env_h = environment.env(env_size)            
     for k in range(trial_count):
@@ -187,10 +212,13 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         rw = 0                        # reward
         totRW = 0                     # total reward in this episode
         done = False                  # episode completion flag
-        fb = [feedback() for n in range(len(C))] # Human feedback
+        fb = [[] for n in range(len(C))] # Human feedback
         update_Cest = False
         
         for i in range(episode_count):
+
+            trajectory = Trajectory() # store trajectory for generating active feedback (generate feedback at the end of the episode)
+            totalRW_list = []
             
             for j in range(max_steps):
                 
@@ -217,35 +245,67 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                 # accumrate total reward
                 totRW += rw
 
+                # store the trajectory for generating active feedback (generate feedback at the end of the episode)
+                if np.any(L > 0.0):
+                    trajectory.append(state=ob_for_feedback, action=action, optimal_action=rightAction, reward=rw, done=done)
+
                 # set reward zero when simulating without reward scase
                 if no_reward:
                     rw = 0.0
                 
                 # 'human' feedback generation (by using ORACLE)
-                for trainerIdx in np.arange(len(fb)):
-                    if np.random.rand() < L[trainerIdx]:
-                        fb[trainerIdx] = generate_feedback(ob_for_feedback, len(env_h.action_list()), C[trainerIdx], [rightAction], type=feedback_type, action=action) # Right feedback
-                    else:
-                        fb[trainerIdx] = feedback() # no feedback
-                
-                
-                # if done==True, call agent once more to learn 
-                # the final transition, then finish this episode.
-                if done or j == max_steps - 1:
+                if active_feedback_type is None:
+                    for trainerIdx in np.arange(len(fb)):
+                        if np.random.rand() < L[trainerIdx]:
+                            fb[trainerIdx] = [generate_feedback(trajectory.state[-1], 
+                                                                len(env_h.action_list()), 
+                                                                C[trainerIdx], 
+                                                                [trajectory.optimal_action[-1]], 
+                                                                type=feedback_type, 
+                                                                action=trajectory.action[-1])] # Right feedback
+                        else:
+                            fb[trainerIdx] = [Feedback()] # no feedback
+                elif active_feedback_type == 'count':
+                    # active feedback (count-based) -- create feedback at the end of the episode
+                    if done or j == max_steps - 1:
+                        fb = [[] for n in range(len(C))] # reset feedbacks
+                        # get the number of visitations and feedbacks
+                        N = np.zeros((len(trajectory),))
+                        for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
+                            if not no_reward:
+                                N[n] += agent_h.Nsa[s, a]
+                            for trainerIdx in np.arange(len(fb)):
+                                N[n] += agent_h.hp[trainerIdx, s, a] * 1
+                                N[n] += agent_h.hm[trainerIdx, s, a] * 1
+                        
+                        for trainerIdx in np.arange(len(fb)):
+                            N_fb = len(trajectory) * L[trainerIdx]
+                            N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
+                            idx = np.argsort(N+np.random.normal(0, 1.0, len(N)))[:N_fb] # pick N_fb items with the smallest N
+                            for n in idx:
+                                fb[trainerIdx].append(generate_feedback(trajectory.state[n],
+                                                                        len(env_h.action_list()), 
+                                                                        C[trainerIdx], 
+                                                                        [trajectory.optimal_action[n]], 
+                                                                        type=feedback_type, 
+                                                                        action=trajectory.action[n]))
+                if done or j == max_steps - 1:             
                     update_Cest = ((i+1) % update_Cest_interval == 0)
                     agent_h.act(action, ob, rw, done, fb, C, update_Cest=update_Cest)
                     break
             
-            if i % 100 == 0:
-                print(f"{k}, {i}: Ce: {agent_h.Ce} \t total reward: {totRW}")
+            totalRW_list.append(totRW)
+            if i % 20 == 0:
+                print(f"{k}, {i}: Ce: {agent_h.Ce} \t total reward: {np.mean(totalRW_list)}")
+                totalRW_list = []
             
             # store result
-            mon.store(i, k, totRW)
-            monC.store(i, k, agent_h.Ce)
+            monitor.store('return', totRW)
+            monitor.store('Cest', agent_h.Ce)
             if hasattr(agent_h, 'sum_of_right_feedback'):
                 # store VI algorithm parameters
-                monAlpha.store(i, k, agent_h.sum_of_right_feedback + agent_h.a)
-                monBeta.store(i, k,  agent_h.sum_of_wrong_feedback + agent_h.b)
+                monitor.store('alpha', agent_h.sum_of_right_feedback + agent_h.a)
+                monitor.store('beta',  agent_h.sum_of_wrong_feedback + agent_h.b)
                 
             # Reset environment
             env_h.reset()
@@ -262,17 +322,13 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         if k < trial_count-1:
             del agent_h
             del oracle_h
+        
+        # store the accumurated results
+        monitor.store(done=True)
 
     # Save results
-    fname = 'results/aveRW_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
-    mon.saveData(fname)
-    fname = 'results/aveC_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
-    monC.saveData(fname)
-    if hasattr(agent_h, 'sum_of_right_feedback'):
-        fname = 'results/aveAlpha_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
-        monAlpha.saveData(fname)
-        fname = 'results/aveBeta_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
-        monBeta.saveData(fname)
+    fname = 'results/results_' + 'Env_' + str(env_size) + '_' + str(algID) + str(simInfo)
+    monitor.saveData(fname)
         
     #fname = 'results/plot_' + str(algID) + str(simInfo)
     #mon.savePlot(fname)

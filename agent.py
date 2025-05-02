@@ -93,15 +93,16 @@ class agent():
     
     def _collect_feedback(self, feedback_list):
         # collect feedback and update self.hp and self.hm. 
-        for n, fb in enumerate(feedback_list):
-            # if fb.good_actions.shape[1] > 0:
-            for m in range(fb.good_actions.shape[0]): # support multiple set of good/bad actions with different confidence level
-                for a in fb.good_actions[m]:
-                    self.hp[n, fb.state, a] = self.hp[n, fb.state, a] + fb.conf_good_actions[m]
-            # if fb.bad_actions.shape[1] > 0:
-            for m in range(fb.bad_actions.shape[0]):
-                for a in fb.bad_actions[m]:
-                    self.hm[n, fb.state, a] = self.hm[n, fb.state, a] + fb.conf_bad_actions[m]
+        for n, fb_list in enumerate(feedback_list): # n for trainer index
+            for fb in fb_list:
+                # if fb.good_actions.shape[1] > 0:
+                for m in range(fb.good_actions.shape[0]): # support multiple set of good/bad actions with different confidence level
+                    for a in fb.good_actions[m]:
+                        self.hp[n, fb.state, a] = self.hp[n, fb.state, a] + fb.conf_good_actions[m]
+                # if fb.bad_actions.shape[1] > 0:
+                for m in range(fb.bad_actions.shape[0]):
+                    for a in fb.bad_actions[m]:
+                        self.hm[n, fb.state, a] = self.hm[n, fb.state, a] + fb.conf_bad_actions[m]
                             
     # Tabular one step Temporal Difference
     def tabQLgreedy(self, obs, rw):
@@ -145,6 +146,7 @@ class agent():
             self.sum_of_wrong_feedback = np.zeros(self.nTrainer) # sum of the expected number of wrong feedbacks (\sum h^w)
             self.psi_for_hr = psi(self.sum_of_right_feedback + self.a) - psi(self.sum_of_right_feedback + self.sum_of_wrong_feedback + self.a + self.b) # psi( \sum h^r + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
             self.psi_for_hw = psi(self.sum_of_wrong_feedback + self.b) - psi(self.sum_of_right_feedback + self.sum_of_wrong_feedback + self.a + self.b) # psi( \sum h^w + alpha ) - psi( \sum h^r + \sum h^w + alpha + beta )
+            self.Nsa = np.zeros((self.nStates, self.nActions)) # number of the agent visiting (s,a) pair
             
             # set prior parameters for C
             if hasattr(self.a, "__len__"):
@@ -179,8 +181,10 @@ class agent():
         
         # decide action based on pr[] probability distribution
         action = np.min( np.where( np.random.rand() < np.cumsum(pr) ) )        
-
         
+        # update Nsa (number of the agent visiting (s,a) pair)
+        self.Nsa[curr_state_idx, action] += 1
+
         # check if this is the first time...
         if self.prev_obs is not None:
             # one step TD algorithm
