@@ -14,26 +14,28 @@ C = np.array([0.9,  0.8,])
 L = np.ones(len(C)) * 5e-2
 env_size = 'small'         # environment size ('small' or 'medium')
 trial_count = 100          # number of learning trial
-episode_count = 2000       # number of episodes for a single learning trial
+episode_count = 1500       # number of episodes for a single learning trial
+update_Cest_interval = 10
 
 
 
-# main_oracle.main(
-#          algID   = 'tabQL_Cest_vi_t2',  # 'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2'
-#                                         # 'tabQL_Cest_em_t1', 'tabQL_Cest_em_t2'
-#                                         # 'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
-#          simInfo='_C=p9p8_Tr2_L=p01_a=40_b=10', # Filename header
-#          env_size = env_size,           # environment size ('small' or 'medium')
-#          trial_count = trial_count,     # number of learning trial
-#          episode_count = episode_count, # number of episodes for a single learning trial
-#          L  = L,                        # probability to give a feedback
-#          C  = C,                        # Human feedback confidence level)
-#          a  = 40,
-#          b  = 10,
-#          no_reward = False,          # True: learns without reward
-#          C_fixed = None,             # np.array(num_trainers): fix C value, None: learns C value
-#          active_feedback_type=None, #'count',
-#          )
+main_oracle.main(
+         algID   = 'tabQL_Cest_vi_t2',  # 'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2'
+                                        # 'tabQL_Cest_em_t1', 'tabQL_Cest_em_t2'
+                                        # 'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
+         simInfo='_C=p9p8_Tr2_L=p01_a=40_b=10', # Filename header
+         env_size = env_size,           # environment size ('small' or 'medium')
+         trial_count = trial_count,     # number of learning trial
+         episode_count = episode_count, # number of episodes for a single learning trial
+         L  = L,                        # probability to give a feedback
+         C  = C,                        # Human feedback confidence level)
+         prior_alpha  = 40,
+         prior_beta   = 10,
+         no_reward = False,          # True: learns without reward
+         C_fixed = None,             # np.array(num_trainers): fix C value, None: learns C value
+         active_feedback_type=None, #'count',
+         update_Cest_interval=update_Cest_interval,
+         )
 
 main_oracle.main(
          algID   = 'tabQL_Cest_vi_t2',  # 'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2'
@@ -45,44 +47,48 @@ main_oracle.main(
          episode_count = episode_count, # number of episodes for a single learning trial
          L  = L,                        # probability to give a feedback
          C  = C,                        # Human feedback confidence level)
-         a  = 40,
-         b  = 10,
+         prior_alpha  = 40,
+         prior_beta   = 10,
          no_reward = False,          # True: learns without reward
          C_fixed = None,             # np.array(num_trainers): fix C value, None: learns C value
          active_feedback_type='count',
+         update_Cest_interval=update_Cest_interval,
          )
 
-# main_oracle.main(
-#          algID   = 'tabQL_Cest_vi_t2',  # 'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2'
-#                                         # 'tabQL_Cest_em_t1', 'tabQL_Cest_em_t2'
-#                                         # 'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
-#          simInfo='_C=p9p8_Tr2_L=p01_a=40_b=10_noR', # Filename header
-#          env_size = env_size,           # environment size ('small' or 'medium')
-#          trial_count = trial_count,     # number of learning trial
-#          episode_count = episode_count, # number of episodes for a single learning trial
-#          L  = L,                        # probability to give a feedback
-#          C  = C,                        # Human feedback confidence level)
-#          a  = 40,
-#          b  = 10,
-#          no_reward = True,          # True: learns without reward
-#          C_fixed = None,             # np.array(num_trainers): fix C value, None: learns C value
-#          active_feedback_type=None, #'count',
-#          )
+main_oracle.main(
+         algID   = 'tabQL_Cest_vi_t2',  # 'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2'
+                                        # 'tabQL_Cest_em_t1', 'tabQL_Cest_em_t2'
+                                        # 'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
+         simInfo='_C=p9p8_Tr2_L=p01_a=40_b=10_noR', # Filename header
+         env_size = env_size,           # environment size ('small' or 'medium')
+         trial_count = trial_count,     # number of learning trial
+         episode_count = episode_count, # number of episodes for a single learning trial
+         L  = L,                        # probability to give a feedback
+         C  = C,                        # Human feedback confidence level)
+         prior_alpha  = 40,
+         prior_beta   = 10,
+         b  = 10,
+         no_reward = True,          # True: learns without reward
+         C_fixed = None,             # np.array(num_trainers): fix C value, None: learns C value
+         active_feedback_type=None, #'count',
+         update_Cest_interval=update_Cest_interval,
+         )
 
-# main_oracle.main(
-#          algID   = 'tabQL_Cest_vi_t2',  # 'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2'
-#                                         # 'tabQL_Cest_em_t1', 'tabQL_Cest_em_t2'
-#                                         # 'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
-#          simInfo='_C=p9p8_Tr2_L=p01_a=40_b=10_ALcount_noR', # Filename header
-#          env_size = env_size,           # environment size ('small' or 'medium')
-#          trial_count = trial_count,     # number of learning trial
-#          episode_count = episode_count, # number of episodes for a single learning trial
-#          L  = L,                        # probability to give a feedback
-#          C  = C,                        # Human feedback confidence level)
-#          a  = 40,
-#          b  = 10,
-#          no_reward = True,          # True: learns without reward
-#          C_fixed = None,             # np.array(num_trainers): fix C value, None: learns C value
-#          active_feedback_type='count',
-#          )
+main_oracle.main(
+         algID   = 'tabQL_Cest_vi_t2',  # 'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2'
+                                        # 'tabQL_Cest_em_t1', 'tabQL_Cest_em_t2'
+                                        # 'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
+         simInfo='_C=p9p8_Tr2_L=p01_a=40_b=10_ALcount_noR', # Filename header
+         env_size = env_size,           # environment size ('small' or 'medium')
+         trial_count = trial_count,     # number of learning trial
+         episode_count = episode_count, # number of episodes for a single learning trial
+         L  = L,                        # probability to give a feedback
+         C  = C,                        # Human feedback confidence level)
+         prior_alpha  = 40,
+         prior_beta   = 10,
+         no_reward = True,          # True: learns without reward
+         C_fixed = None,             # np.array(num_trainers): fix C value, None: learns C value
+         active_feedback_type='count',
+         update_Cest_interval=update_Cest_interval,
+         )
 

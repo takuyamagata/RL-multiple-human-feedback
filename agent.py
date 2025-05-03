@@ -176,8 +176,22 @@ class agent():
                     l_pr[i] += np.sum(self.hp[trainerIdx, curr_state_idx, i] * self.psi_for_hr[trainerIdx] + self.hm[trainerIdx, curr_state_idx, i] * self.psi_for_hw[trainerIdx]) \
                              - np.sum(self.hm[trainerIdx, curr_state_idx, i] * self.psi_for_hr[trainerIdx] + self.hp[trainerIdx, curr_state_idx, i] * self.psi_for_hw[trainerIdx])
             
-        l_pr = l_pr - mylib.logsum(l_pr)            
-        pr = np.exp(l_pr)
+        l_pr_norm = l_pr - mylib.logsum(l_pr)            
+        pr = np.exp(l_pr_norm)
+        # if np.any(np.isnan(pr)):
+        #     print("nan in pr")
+        #     print("l_pr", l_pr)
+        #     print("l_pr_norm", l_pr_norm)
+        #     print("Q", self.Q[curr_state_idx,:])
+        #     print("hp", self.hp[:,curr_state_idx,:])
+        #     print("hm", self.hm[:,curr_state_idx,:])
+        #     print("psi_for_hr", self.psi_for_hr)
+        #     print("psi_for_hw", self.psi_for_hw)
+        #     print("self.sum_of_right_feedback", self.sum_of_right_feedback)
+        #     print("self.sum_of_wrong_feedback", self.sum_of_wrong_feedback)
+        #     print("self.a", self.a)
+        #     print("self.b", self.b)
+        #     raise ValueError('nan in pr')
         
         # decide action based on pr[] probability distribution
         action = np.min( np.where( np.random.rand() < np.cumsum(pr) ) )        
@@ -267,6 +281,8 @@ class agent():
 
             # set the new Ce (avoid 0.0 and 1.0)
             self.Ce = np.clip(Ce, 0.001, 0.999)
+            self.psi_for_hr = np.clip(self.psi_for_hr, -6.91, 0.0) # -6.91 = log(1e-3) (log of the smallest number)
+            self.psi_for_hw = np.clip(self.psi_for_hw, -6.91, 0.0) # -6.91 = log(1e-3) (log of the smallest number)
         return action
 
     def tabQL_Cest_em(self, obs, rw, done, fb, type=2, update_Cest=False):

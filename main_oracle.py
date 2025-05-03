@@ -168,8 +168,8 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
          max_steps = 500,               # max. number of steps in a episode
          L  = np.array([1.0]),          # probability to give a feedback
          C  = np.array([0.2]),          # Human feedback confidence level
-         a  = 1.0,                      # alpha for C prior
-         b  = 1.0,                      # beta  for C prior
+         prior_alpha  = 1.0,                      # alpha for C prior
+         prior_beta   = 1.0,                      # beta  for C prior
          no_reward = False,             # agent learns the policy without reward (feedback only)
          C_fixed = None,                # None: learn C, np.array(): fixed C (fixed C only works with "tabQL_Cest_em_org_t1" or "tabQL_Cest_em_org_t2")
          update_Cest_interval = 5,      # Cest update interval (number of espisodes)
@@ -192,7 +192,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         
         env_h.reset()
         agent_h  = agent(algID, env_h.nStates(), len(env_h.action_list()), 
-                         a=a, b=b, 
+                         a=prior_alpha, b=prior_beta, 
                          C_fixed=C_fixed, 
                         )
         
