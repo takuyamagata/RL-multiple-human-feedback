@@ -140,6 +140,15 @@ class Trajectory():
         self.optimal_action = optimal_action
         self.reward = reward
         self.done = done
+        return
+
+    def reset(self):
+        self.state = []
+        self.action = []
+        self.optimal_action = []
+        self.reward = []
+        self.done = []
+        return
 
     def append(self, state=None, action=None, optimal_action=None, reward=None, done=None):
         self.state.append(state)
@@ -155,7 +164,7 @@ class Trajectory():
         return len(self.state)
 
 # ==================================================================================================
-
+@profile
 def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_em_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
@@ -184,6 +193,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         legendStr.append('L={0},C={1}'.format(L[n], C[n]))
     
     monitor = RLmon(['return', 'Cest', 'alpha', 'beta'])
+    trajectory = Trajectory()
     
     env_h = environment.env(env_size)            
     for k in range(trial_count):
@@ -216,7 +226,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         
         for i in range(episode_count):
 
-            trajectory = Trajectory() # store trajectory for generating active feedback (generate feedback at the end of the episode)
+            trajectory.reset() # store trajectory for generating active feedback (generate feedback at the end of the episode)
             totalRW_list = []
             
             for j in range(max_steps):
@@ -273,14 +283,13 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                         for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
                             if not no_reward:
                                 N[n] += agent_h.Nsa[s, a]
-                            for trainerIdx in np.arange(len(fb)):
-                                N[n] += agent_h.hp[trainerIdx, s, a] * 1
-                                N[n] += agent_h.hm[trainerIdx, s, a] * 1
+                            N[n] += agent_h.hp[:, s, a].sum() + agent_h.hm[:, s, a].sum()
                         
                         for trainerIdx in np.arange(len(fb)):
                             N_fb = len(trajectory) * L[trainerIdx]
                             N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
-                            idx = np.argsort(N+np.random.normal(0, 1.0, len(N)))[:N_fb] # pick N_fb items with the smallest N
+                            idx = np.argpartition(N+np.random.normal(0, 1.0, len(N)), N_fb)[:N_fb] # pick N_fb items with the smallest N
+                            # idx = np.argsort(N+np.random.normal(0, 1.0, len(N)))[:N_fb] # pick N_fb items with the smallest N
                             for n in idx:
                                 fb[trainerIdx].append(generate_feedback(trajectory.state[n],
                                                                         len(env_h.action_list()), 
@@ -288,6 +297,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                                                                         [trajectory.optimal_action[n]], 
                                                                         type=feedback_type, 
                                                                         action=trajectory.action[n]))
+                        
                 if done or j == max_steps - 1:             
                     update_Cest = ((i+1) % update_Cest_interval == 0)
                     agent_h.act(action, ob, rw, done, fb, C, update_Cest=update_Cest)
