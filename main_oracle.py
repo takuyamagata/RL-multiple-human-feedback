@@ -9,18 +9,18 @@ from RLmon import RLmon
 
 class Feedback():
     def __init__(self, state=[], good_actions=[], conf_good_actions=[], bad_actions=[], conf_bad_actions=[]):
-        good_actions = np.array(good_actions)
-        bad_actions = np.array(bad_actions)
+        # good_actions = np.array(good_actions)
+        # bad_actions = np.array(bad_actions)
         
         # check inputs
-        if len(good_actions.shape) == 1:
-            good_actions = good_actions.reshape((1,-1))
-        if len(bad_actions.shape) == 1:
-            bad_actions = bad_actions.reshape((1,-1))
-        if not hasattr(conf_good_actions, '__len__'):
-            conf_good_actions = [conf_good_actions]
-        if not hasattr(conf_bad_actions, '__len__'):
-            conf_bad_actions = [conf_bad_actions]
+        # if len(good_actions.shape) == 1:
+        #     good_actions = good_actions.reshape((1,-1))
+        # if len(bad_actions.shape) == 1:
+        #     bad_actions = bad_actions.reshape((1,-1))
+        # if not hasattr(conf_good_actions, '__len__'):
+        #     conf_good_actions = [conf_good_actions]
+        # if not hasattr(conf_bad_actions, '__len__'):
+        #     conf_bad_actions = [conf_bad_actions]
         
         self.state = state
         self.good_actions = good_actions
@@ -267,8 +267,8 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                             fb[trainerIdx] = [Feedback()] # no feedback
                 elif active_feedback_type == 'count':
                     # active feedback (count-based) -- create feedback at the end of the episode
+                    fb = [[] for n in range(len(C))] # reset feedbacks
                     if done or j == max_steps - 1:
-                        fb = [[] for n in range(len(C))] # reset feedbacks
                         # get the number of visitations and feedbacks
                         N = np.zeros((len(trajectory),))
                         for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):

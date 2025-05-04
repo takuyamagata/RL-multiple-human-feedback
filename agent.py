@@ -90,19 +90,17 @@ class agent():
 
         return action
     
-    
+    # @profile
     def _collect_feedback(self, feedback_list):
         # collect feedback and update self.hp and self.hm. 
         for n, fb_list in enumerate(feedback_list): # n for trainer index
             for fb in fb_list:
                 # if fb.good_actions.shape[1] > 0:
-                for m in range(fb.good_actions.shape[0]): # support multiple set of good/bad actions with different confidence level
-                    for a in fb.good_actions[m]:
-                        self.hp[n, fb.state, a] = self.hp[n, fb.state, a] + fb.conf_good_actions[m]
+                for a in fb.good_actions: # support multiple set of good/bad actions with different confidence level
+                    self.hp[n, fb.state, int(a)] = self.hp[n, fb.state, int(a)] + fb.conf_good_actions
                 # if fb.bad_actions.shape[1] > 0:
-                for m in range(fb.bad_actions.shape[0]):
-                    for a in fb.bad_actions[m]:
-                        self.hm[n, fb.state, a] = self.hm[n, fb.state, a] + fb.conf_bad_actions[m]
+                for a in fb.bad_actions:
+                    self.hm[n, fb.state, int(a)] = self.hm[n, fb.state, int(a)] + fb.conf_bad_actions
                             
     # Tabular one step Temporal Difference
     def tabQLgreedy(self, obs, rw):
