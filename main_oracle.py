@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd # used for stroing the results
 
 import envPacMan as environment 
 from agent import agent
