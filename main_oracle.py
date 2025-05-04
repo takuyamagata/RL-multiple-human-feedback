@@ -164,7 +164,6 @@ class Trajectory():
         return len(self.state)
 
 # ==================================================================================================
-@profile
 def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_em_t1', 'tabQL_Cest_em_org_t2', 
                                         #                   'tabQL_Cest_vi_t1', 'tabQL_Cest_vi_t2'
