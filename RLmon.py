@@ -66,5 +66,7 @@ class RLmon(object):
         return
 
     def saveData(self, fname):
-        np.savez(fname, **self.data)        
+        # Convert all keys to strings
+        string_data = {str(key): value for key, value in self.data.items()}
+        np.savez(fname, **string_data)
         return
