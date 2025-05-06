@@ -58,6 +58,27 @@ class RLmon(object):
             std.append(np.std(data, axis=0))
             n += 1
         return np.array(ave), np.array(std)
+    
+    def get_pct(self, name, pct=0.5):
+        """Get the percentile of the data
+        Args:
+            name (str): The name of the data to get the percentile of.
+            pct (float): The percentile to get.
+        """
+        if name not in self.data:
+            return None
+        if len(self.data[name]) == 0:
+            return None
+        
+        pct_data = []
+        n = 0
+        while True:
+            data = [d[n] for d in self.data[name] if len(d) > n]
+            if len(data) == 0:
+                break
+            pct_data.append(np.percentile(data, pct, axis=0))
+            n += 1
+        return np.array(pct_data)
 
     def loadData(self, fname):
         data = np.load(fname, allow_pickle=True)

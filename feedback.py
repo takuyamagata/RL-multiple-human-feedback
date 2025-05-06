@@ -206,7 +206,7 @@ def generate_feedback(trajectory,
             # get the number of visitations and feedbacks
             N = np.zeros((len(trajectory),))
             if 'last3' in active_feedback_type: # prioritise the last 3 items
-                N[-np.minimum(3,len(N)):] -= 3
+                N[-np.minimum(3,len(N)):] -= 5
             for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
                 if not no_reward:
                     N[n] += agent_h.Nsa[s, a]
@@ -225,13 +225,42 @@ def generate_feedback(trajectory,
                                                 [trajectory.optimal_action[n]], 
                                                 type=feedback_type, 
                                                 action=trajectory.action[n]))
+    elif 'value' in active_feedback_type:
+        # active feedback (count-based) -- create feedback at the end of the episode
+        fb = [[] for n in range(len(C))] # reset feedbacks
+        if end_of_episode:
+            # get the number of visitations and feedbacks
+            value_gap = np.zeros((len(trajectory),))
+            for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
+                N = agent_h.hp[:, s, a].sum() + agent_h.hm[:, s, a].sum() if no_reward else \
+                    agent_h.hp[:, s, a].sum() + agent_h.hm[:, s, a].sum() + agent_h.Nsa[s, a]
+                if 'last3' in active_feedback_type and n > (len(trajectory) - 4): # prioritise the last 3 items
+                    N -= 5
+                a_argmax = np.argmax(agent_h.Q[s, :])
+                Q_max = 520 # environment dependent 
+                value_gap[n] = (agent_h.Q[s, a_argmax] + (Q_max - agent_h.Q[s, a_argmax])/np.sqrt(np.maximum(N,1)) - agent_h.Q[s, a])
+
+            for trainerIdx in np.arange(len(fb)):
+                N_fb = len(trajectory) * L[trainerIdx]
+                N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
+                idx = np.argpartition(-value_gap, N_fb)[:N_fb] # pick N_fb items with the largest value gap
+                for n in idx:
+                    fb[trainerIdx].append(generate_single_feedback(
+                                                trajectory.state[n],
+                                                len(action_list), 
+                                                C[trainerIdx], 
+                                                [trajectory.optimal_action[n]], 
+                                                type=feedback_type, 
+                                                action=trajectory.action[n]))
+    
+        
     elif active_feedback_type == 'ideal':
         # active feedback (ideal) -- create feedback at the end of the episode
         fb = [[] for n in range(len(C))]
         if end_of_episode:
             regret_on_trajectory = []
             for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
-                regret_on_trajectory.append(oracle_h.Q[s, :].max() - oracle_h.Q[s, a])
+                regret_on_trajectory.append(oracle_h.Q[s, :].max() - oracle_h.Q[s, np.argmax(agent_h.Q[s, :])])
             for trainerIdx in np.arange(len(fb)):
                 N_fb = len(trajectory) * L[trainerIdx]
                 N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
