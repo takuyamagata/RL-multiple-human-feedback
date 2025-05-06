@@ -1,5 +1,6 @@
 import numpy as np
 
+# class for storing the trajectory for generating feedback
 class Trajectory():
     def __init__(self, state=[], action=[], optimal_action=[], reward=[], done=[]):
         assert len(state) == len(action) == len(optimal_action) == len(reward) == len(done), \
@@ -32,7 +33,7 @@ class Trajectory():
     def __len__(self):
         return len(self.state)
 
-
+# class for storing the feedback
 class Feedback():
     def __init__(self, state=[], good_actions=[], conf_good_actions=[], bad_actions=[], conf_bad_actions=[]):
         # good_actions = np.array(good_actions)
@@ -54,7 +55,7 @@ class Feedback():
         self.bad_actions = bad_actions
         self.conf_bad_actions = conf_bad_actions
         
-        
+# generate a single feedback        
 def generate_single_feedback(state, action_list, C, optimal_actions, type='binary-feedback', action=None):
     # generate human feedback
     #   action_list = list of possible actions in the environment
@@ -158,7 +159,7 @@ def generate_single_feedback(state, action_list, C, optimal_actions, type='binar
     return ret
 
 
-# Generate feedback with Active feedback
+# Generate various type of feedback with a specified Active feedback method
 def generate_feedback(trajectory,
                       C,
                       L,

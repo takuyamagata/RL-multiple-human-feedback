@@ -2,169 +2,8 @@ import numpy as np
 
 import envPacMan as environment 
 from agent import agent
-
 from RLmon import RLmon
-
 from feedback import *
-
-"""
-class Feedback():
-    def __init__(self, state=[], good_actions=[], conf_good_actions=[], bad_actions=[], conf_bad_actions=[]):
-        # good_actions = np.array(good_actions)
-        # bad_actions = np.array(bad_actions)
-        
-        # check inputs
-        # if len(good_actions.shape) == 1:
-        #     good_actions = good_actions.reshape((1,-1))
-        # if len(bad_actions.shape) == 1:
-        #     bad_actions = bad_actions.reshape((1,-1))
-        # if not hasattr(conf_good_actions, '__len__'):
-        #     conf_good_actions = [conf_good_actions]
-        # if not hasattr(conf_bad_actions, '__len__'):
-        #     conf_bad_actions = [conf_bad_actions]
-        
-        self.state = state
-        self.good_actions = good_actions
-        self.conf_good_actions = conf_good_actions
-        self.bad_actions = bad_actions
-        self.conf_bad_actions = conf_bad_actions
-        
-        
-def generate_feedback(state, nActions, C, right_actions, type='binary-feedback', action=None):
-    # generate human feedback
-    #   nActions = number of actions in the environment
-    #   C = consistency level (probability of giving a right feedback)
-    #   type = feedback type -- 'binary-feedback', 'soft-feedback', 'crisp-set', 'soft-set'
-    #   right_actions = list of actions for the optimal actions
-    #   action = action for giving a feedback
-    
-    if type=='binary-feedback':
-        # right or wrong (original Adivce algorithm)
-        if np.random.rand() < C:
-            # right feedback
-            if action in right_actions:
-                ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
-            else:
-                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
-        else:
-            # wrong feedback
-            if action in right_actions:
-                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
-            else:
-                ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
-    elif type=='soft-feedback':
-        # right or wrong with the confidence level [0,1]
-        sampled_C = np.random.beta(a=C*10, b=(10-C*10)) # sample C from beta distribution to keep the expectation to be the given C
-        confidence = np.abs(sampled_C - 0.5) * 2.0
-        if np.random.rand() < sampled_C:
-            # right feedback
-            if action in right_actions:
-                ret = Feedback(state=state, good_actions=[action], conf_good_actions=confidence)
-            else:
-                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=confidence)
-        else:
-            # wrong feedback
-            if action in right_actions:
-                ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=confidence)
-            else:
-                ret = Feedback(state=state, good_actions=[action], conf_good_actions=confidence)
-    elif type=='crisp-set':
-        # set of good and/or bad actions      
-        num_feedback_actions = 2
-        a_list = np.random.choice(nActions, num_feedback_actions, replace=False)
-        good_actions, bad_actions = [], []
-        for a in a_list:
-            if np.random.rand() < C:
-                # right feedback
-                if a in right_actions:
-                    good_actions.append(a)
-                else:
-                    bad_actions.append(a)
-            else:
-                # wrong feedback
-                if a in right_actions:
-                    bad_actions.append(a)
-                else:
-                    good_actions.append(a)
-        conf_good_actions = 1.0 if len(good_actions) > 0 else []
-        conf_bad_actions = 1.0 if len(bad_actions) > 0 else []
-        ret = Feedback(state=state, good_actions=good_actions, conf_good_actions=conf_good_actions,
-                                    bad_actions=bad_actions,   conf_bad_actions=conf_bad_actions)
-    elif type=='soft-set':
-        # set of good and/or bad actions      
-        num_feedback_actions = 2
-        a_list = np.random.choice(nActions, num_feedback_actions, replace=False)
-        good_actions, bad_actions = [], []
-        sampled_C = np.random.beta(a=C*10, b=(10-C*10)) # sample C from beta distribution to keep the expectation to be the given C
-        confidence = np.abs(sampled_C - 0.5) * 2.0
-        for a in a_list:
-            if np.random.rand() < sampled_C:
-                # right feedback
-                if a in right_actions:
-                    good_actions.append(a)
-                else:
-                    bad_actions.append(a)
-            else:
-                # wrong feedback
-                if a in right_actions:
-                    bad_actions.append(a)
-                else:
-                    good_actions.append(a)
-        conf_good_actions = confidence if len(good_actions) > 0 else []
-        conf_bad_actions = confidence if len(bad_actions) > 0 else []
-        ret = Feedback(state=state, good_actions=good_actions, conf_good_actions=conf_good_actions,
-                                    bad_actions=bad_actions,   conf_bad_actions=conf_bad_actions)
-    
-    # no information binary-feedbacks
-    elif type == 'binary-random':
-        # randomly pick right or wrong (original Adivce algorithm)
-        if np.random.rand() < 1.0/nActions:
-            ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
-        else:
-            ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
-    elif type == 'binary-positive':
-        # always positive (say right) (original Adivce algorithm)
-        ret = Feedback(state=state, good_actions=[action], conf_good_actions=1.0)
-        
-    elif type == 'binary-negative':         
-        # always negative (say wrong) (original Adivce algorithm)
-        ret = Feedback(state=state, bad_actions=[action], conf_bad_actions=1.0)
-
-    return ret
-
-
-class Trajectory():
-    def __init__(self, state=[], action=[], optimal_action=[], reward=[], done=[]):
-        assert len(state) == len(action) == len(optimal_action) == len(reward) == len(done), \
-            f"Length of state, action, optimal_action, reward, done must be the same: {len(state)}, {len(action)}, {len(optimal_action)}, {len(reward)}, {len(done)}"
-        self.state = state
-        self.action = action
-        self.optimal_action = optimal_action
-        self.reward = reward
-        self.done = done
-        return
-
-    def reset(self):
-        self.state = []
-        self.action = []
-        self.optimal_action = []
-        self.reward = []
-        self.done = []
-        return
-
-    def append(self, state=None, action=None, optimal_action=None, reward=None, done=None):
-        self.state.append(state)
-        self.action.append(action)
-        self.optimal_action.append(optimal_action)
-        self.reward.append(reward)
-        self.done.append(done)
-        
-    def __str__(self):
-        return f"state: {self.state}, action: {self.action}, reward: {self.reward}, done: {self.done}"
-    
-    def __len__(self):
-        return len(self.state)
-"""
 
 # ==================================================================================================
 def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2', 
@@ -178,8 +17,8 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
          max_steps = 500,               # max. number of steps in a episode
          L  = np.array([1.0]),          # probability to give a feedback
          C  = np.array([0.2]),          # Human feedback confidence level
-         prior_alpha  = 1.0,                      # alpha for C prior
-         prior_beta   = 1.0,                      # beta  for C prior
+         prior_alpha  = 1.0,            # alpha for C prior
+         prior_beta   = 1.0,            # beta  for C prior
          no_reward = False,             # agent learns the policy without reward (feedback only)
          C_fixed = None,                # None: learn C, np.array(): fixed C (fixed C only works with "tabQL_Cest_em_org_t1" or "tabQL_Cest_em_org_t2")
          update_Cest_interval = 5,      # Cest update interval (number of espisodes)
@@ -279,77 +118,7 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                             no_reward=no_reward, 
                             feedback_type = feedback_type, 
                             active_feedback_type=active_feedback_type,)
-                # if active_feedback_type is None:
-                #     for trainerIdx in np.arange(len(fb)):
-                #         if np.random.rand() < L[trainerIdx]:
-                #             fb[trainerIdx] = [generate_feedback(trajectory.state[-1], 
-                #                                                 len(env_h.action_list()), 
-                #                                                 C[trainerIdx], 
-                #                                                 [trajectory.optimal_action[-1]], 
-                #                                                 type=feedback_type, 
-                #                                                 action=trajectory.action[-1])] # Right feedback
-                #         else:
-                #             fb[trainerIdx] = [Feedback()] # no feedback
-                # elif active_feedback_type == 'random':
-                #     # active feedback (random) -- create feedback at the end of the episode
-                #     fb = [[] for n in range(len(C))]
-                #     if done or j == max_steps - 1:
-                #         for trainerIdx in np.arange(len(fb)):
-                #             N_fb = len(trajectory) * L[trainerIdx]
-                #             N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
-                #             idx = np.random.choice(len(trajectory), N_fb, replace=False) # pick N_fb items randomly
-                #             for n in idx:
-                #                 fb[trainerIdx].append(generate_feedback(trajectory.state[n],
-                #                                                         len(env_h.action_list()), 
-                #                                                         C[trainerIdx], 
-                #                                                         [trajectory.optimal_action[n]], 
-                #                                                         type=feedback_type, 
-                #                                                         action=trajectory.action[n]))
-                # elif active_feedback_type == 'count':
-                #     # active feedback (count-based) -- create feedback at the end of the episode
-                #     fb = [[] for n in range(len(C))] # reset feedbacks
-                #     if done or j == max_steps - 1:
-                #         # get the number of visitations and feedbacks
-                #         N = np.zeros((len(trajectory),))
-                #         N[-np.minimum(3,len(N)):] -= 3 # offset the last 3 items
-                #         for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
-                #             if not no_reward:
-                #                 N[n] += agent_h.Nsa[s, a]
-                #             N[n] += agent_h.hp[:, s, a].sum() + agent_h.hm[:, s, a].sum()
-                        
-                #         for trainerIdx in np.arange(len(fb)):
-                #             N_fb = len(trajectory) * L[trainerIdx]
-                #             N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
-                #             idx = np.argpartition(N+np.random.normal(0, 1.0, len(N)), N_fb)[:N_fb] # pick N_fb items with the smallest N
-                #             # idx = np.argsort(N+np.random.normal(0, 1.0, len(N)))[:N_fb] # pick N_fb items with the smallest N
-                #             for n in idx:
-                #                 fb[trainerIdx].append(generate_feedback(trajectory.state[n],
-                #                                                         len(env_h.action_list()), 
-                #                                                         C[trainerIdx], 
-                #                                                         [trajectory.optimal_action[n]], 
-                #                                                         type=feedback_type, 
-                #                                                         action=trajectory.action[n]))
-                # elif active_feedback_type == 'ideal':
-                #     # active feedback (ideal) -- create feedback at the end of the episode
-                #     fb = [[] for n in range(len(C))]
-                #     if done or j == max_steps - 1:
-                #         regret_on_trajectory = []
-                #         for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
-                #             regret_on_trajectory.append(oracle_h.Q[s, :].max() - oracle_h.Q[s, a])
-                #         for trainerIdx in np.arange(len(fb)):
-                #             N_fb = len(trajectory) * L[trainerIdx]
-                #             N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
-                #             idx = np.argpartition(-np.array(regret_on_trajectory) + 
-                #                                   np.random.normal(0, 1.0, len(regret_on_trajectory)),
-                #                                   N_fb)[:N_fb] # pick the item with the smallest regret
-                #             for n in idx:
-                #                 fb[trainerIdx].append(generate_feedback(trajectory.state[n],
-                #                                                         len(env_h.action_list()), 
-                #                                                         C[trainerIdx], 
-                #                                                         [trajectory.optimal_action[n]], 
-                #                                                         type=feedback_type, 
-                #                                                         action=trajectory.action[n]))
-                                
+                               
                 if done or j == max_steps - 1:             
                     update_Cest = ((i+1) % update_Cest_interval == 0)
                     agent_h.act(action, ob, rw, done, fb, C, update_Cest=update_Cest)
