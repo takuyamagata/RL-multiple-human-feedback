@@ -5,7 +5,9 @@ from agent import agent
 
 from RLmon import RLmon
 
+from feedback import *
 
+"""
 class Feedback():
     def __init__(self, state=[], good_actions=[], conf_good_actions=[], bad_actions=[], conf_bad_actions=[]):
         # good_actions = np.array(good_actions)
@@ -162,6 +164,7 @@ class Trajectory():
     
     def __len__(self):
         return len(self.state)
+"""
 
 # ==================================================================================================
 def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t1', 'tabQL_Cest_em_org_t2', 
@@ -222,11 +225,12 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
         done = False                  # episode completion flag
         fb = [[] for n in range(len(C))] # Human feedback
         update_Cest = False
+
+        totalRW_list = []
         
         for i in range(episode_count):
 
             trajectory.reset() # store trajectory for generating active feedback (generate feedback at the end of the episode)
-            totalRW_list = []
             
             for j in range(max_steps):
                 
@@ -262,41 +266,90 @@ def main(algID   = 'tabQL_Cest_em_t2',  # Agent Algorithm   'tabQL_Cest_em_org_t
                     rw = 0.0
                 
                 # 'human' feedback generation (by using ORACLE)
-                if active_feedback_type is None:
-                    for trainerIdx in np.arange(len(fb)):
-                        if np.random.rand() < L[trainerIdx]:
-                            fb[trainerIdx] = [generate_feedback(trajectory.state[-1], 
-                                                                len(env_h.action_list()), 
-                                                                C[trainerIdx], 
-                                                                [trajectory.optimal_action[-1]], 
-                                                                type=feedback_type, 
-                                                                action=trajectory.action[-1])] # Right feedback
-                        else:
-                            fb[trainerIdx] = [Feedback()] # no feedback
-                elif active_feedback_type == 'count':
-                    # active feedback (count-based) -- create feedback at the end of the episode
-                    fb = [[] for n in range(len(C))] # reset feedbacks
-                    if done or j == max_steps - 1:
-                        # get the number of visitations and feedbacks
-                        N = np.zeros((len(trajectory),))
-                        for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
-                            if not no_reward:
-                                N[n] += agent_h.Nsa[s, a]
-                            N[n] += agent_h.hp[:, s, a].sum() + agent_h.hm[:, s, a].sum()
+                if np.any(L > 0.0):
+                    # generate feedbacks
+                    fb = generate_feedback(
+                            trajectory=trajectory,
+                            C=C,
+                            L=L,
+                            action_list=env_h.action_list(), 
+                            agent_h=agent_h, 
+                            oracle_h=oracle_h, 
+                            end_of_episode=(done or j == max_steps - 1), 
+                            no_reward=no_reward, 
+                            feedback_type = feedback_type, 
+                            active_feedback_type=active_feedback_type,)
+                # if active_feedback_type is None:
+                #     for trainerIdx in np.arange(len(fb)):
+                #         if np.random.rand() < L[trainerIdx]:
+                #             fb[trainerIdx] = [generate_feedback(trajectory.state[-1], 
+                #                                                 len(env_h.action_list()), 
+                #                                                 C[trainerIdx], 
+                #                                                 [trajectory.optimal_action[-1]], 
+                #                                                 type=feedback_type, 
+                #                                                 action=trajectory.action[-1])] # Right feedback
+                #         else:
+                #             fb[trainerIdx] = [Feedback()] # no feedback
+                # elif active_feedback_type == 'random':
+                #     # active feedback (random) -- create feedback at the end of the episode
+                #     fb = [[] for n in range(len(C))]
+                #     if done or j == max_steps - 1:
+                #         for trainerIdx in np.arange(len(fb)):
+                #             N_fb = len(trajectory) * L[trainerIdx]
+                #             N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
+                #             idx = np.random.choice(len(trajectory), N_fb, replace=False) # pick N_fb items randomly
+                #             for n in idx:
+                #                 fb[trainerIdx].append(generate_feedback(trajectory.state[n],
+                #                                                         len(env_h.action_list()), 
+                #                                                         C[trainerIdx], 
+                #                                                         [trajectory.optimal_action[n]], 
+                #                                                         type=feedback_type, 
+                #                                                         action=trajectory.action[n]))
+                # elif active_feedback_type == 'count':
+                #     # active feedback (count-based) -- create feedback at the end of the episode
+                #     fb = [[] for n in range(len(C))] # reset feedbacks
+                #     if done or j == max_steps - 1:
+                #         # get the number of visitations and feedbacks
+                #         N = np.zeros((len(trajectory),))
+                #         N[-np.minimum(3,len(N)):] -= 3 # offset the last 3 items
+                #         for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
+                #             if not no_reward:
+                #                 N[n] += agent_h.Nsa[s, a]
+                #             N[n] += agent_h.hp[:, s, a].sum() + agent_h.hm[:, s, a].sum()
                         
-                        for trainerIdx in np.arange(len(fb)):
-                            N_fb = len(trajectory) * L[trainerIdx]
-                            N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
-                            idx = np.argpartition(N+np.random.normal(0, 1.0, len(N)), N_fb)[:N_fb] # pick N_fb items with the smallest N
-                            # idx = np.argsort(N+np.random.normal(0, 1.0, len(N)))[:N_fb] # pick N_fb items with the smallest N
-                            for n in idx:
-                                fb[trainerIdx].append(generate_feedback(trajectory.state[n],
-                                                                        len(env_h.action_list()), 
-                                                                        C[trainerIdx], 
-                                                                        [trajectory.optimal_action[n]], 
-                                                                        type=feedback_type, 
-                                                                        action=trajectory.action[n]))
-                        
+                #         for trainerIdx in np.arange(len(fb)):
+                #             N_fb = len(trajectory) * L[trainerIdx]
+                #             N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
+                #             idx = np.argpartition(N+np.random.normal(0, 1.0, len(N)), N_fb)[:N_fb] # pick N_fb items with the smallest N
+                #             # idx = np.argsort(N+np.random.normal(0, 1.0, len(N)))[:N_fb] # pick N_fb items with the smallest N
+                #             for n in idx:
+                #                 fb[trainerIdx].append(generate_feedback(trajectory.state[n],
+                #                                                         len(env_h.action_list()), 
+                #                                                         C[trainerIdx], 
+                #                                                         [trajectory.optimal_action[n]], 
+                #                                                         type=feedback_type, 
+                #                                                         action=trajectory.action[n]))
+                # elif active_feedback_type == 'ideal':
+                #     # active feedback (ideal) -- create feedback at the end of the episode
+                #     fb = [[] for n in range(len(C))]
+                #     if done or j == max_steps - 1:
+                #         regret_on_trajectory = []
+                #         for n, (s, a) in enumerate(zip(trajectory.state, trajectory.action)):
+                #             regret_on_trajectory.append(oracle_h.Q[s, :].max() - oracle_h.Q[s, a])
+                #         for trainerIdx in np.arange(len(fb)):
+                #             N_fb = len(trajectory) * L[trainerIdx]
+                #             N_fb = int(N_fb) + 1 if np.random.rand() < (N_fb - int(N_fb)) else int(N_fb) # number of feedbacks
+                #             idx = np.argpartition(-np.array(regret_on_trajectory) + 
+                #                                   np.random.normal(0, 1.0, len(regret_on_trajectory)),
+                #                                   N_fb)[:N_fb] # pick the item with the smallest regret
+                #             for n in idx:
+                #                 fb[trainerIdx].append(generate_feedback(trajectory.state[n],
+                #                                                         len(env_h.action_list()), 
+                #                                                         C[trainerIdx], 
+                #                                                         [trajectory.optimal_action[n]], 
+                #                                                         type=feedback_type, 
+                #                                                         action=trajectory.action[n]))
+                                
                 if done or j == max_steps - 1:             
                     update_Cest = ((i+1) % update_Cest_interval == 0)
                     agent_h.act(action, ob, rw, done, fb, C, update_Cest=update_Cest)

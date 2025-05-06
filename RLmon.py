@@ -57,7 +57,7 @@ class RLmon(object):
             ave.append(np.mean(data, axis=0))
             std.append(np.std(data, axis=0))
             n += 1
-        return ave, std
+        return np.array(ave), np.array(std)
 
     def loadData(self, fname):
         data = np.load(fname, allow_pickle=True)
